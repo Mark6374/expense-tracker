@@ -1,7 +1,7 @@
 # Assignment #05 — AI-assisted repository customization, agent readiness and risk governance
 
 **Repository:** `expense-tracker`, a small Python command-line expense tracker (no external runtime dependencies)
-**Baseline:** tag `baseline`, commit `6d994d2` · **Final:** tag `final` (the last commit in `git log`)
+**Baseline:** tag `baseline`, commit `6d994d2` · **Final:** tag `final`, commit `e8c3766` (later commits only add documentation and screenshots)
 **Date:** 2026-11-22 · **Work mode:** individual
 
 Every command result quoted here was copied from a real run. The raw outputs are in [`docs/evidence/`](evidence/), listed in Appendix B. Nothing was estimated or made up. Any check that was not executed is stated as such (see §7.4).
@@ -216,7 +216,26 @@ Pinned `pytest==9.2.0 ruff==0.17.6 mypy==2.4.1 pip-audit==2.10.1 build==1.6.1`. 
 | Smoke CSV row lengths | `[4, 5, 4, 4]` | `[4, 4, 4, 4, 4]` |
 | Smoke corrupt file | traceback | `error: data file … is not valid JSON`, exit 1 |
 
-Sources: [`baseline_checks.txt`](evidence/baseline_checks.txt), [`baseline_smoke.txt`](evidence/baseline_smoke.txt), [`final_checks.txt`](evidence/final_checks.txt), [`final_smoke.txt`](evidence/final_smoke.txt), [`final_tests_verbose.txt`](evidence/final_tests_verbose.txt). Evidence is captured as text logs rather than screenshots, because everything is a terminal tool.
+Sources: [`baseline_checks.txt`](evidence/baseline_checks.txt), [`baseline_smoke.txt`](evidence/baseline_smoke.txt), [`final_checks.txt`](evidence/final_checks.txt), [`final_smoke.txt`](evidence/final_smoke.txt), [`final_tests_verbose.txt`](evidence/final_tests_verbose.txt). Screenshots of the same runs follow below.
+
+**Screenshots** (real Terminal windows, macOS, 2026-11-22; files in [`docs/evidence/screenshots/`](evidence/screenshots/)).
+The baseline was run from an export of tag `baseline` in a separate clean venv with the same tool versions, so the editable install of the final code couldn't mask the baseline import error. `$D` is a scratch data file in a temp directory. Exit codes are real (`set -o pipefail`).
+
+*Figure 1 — Baseline checks: `pytest` collection error, ruff 1 error, `mypy --strict` 22 errors.*
+
+![Baseline checks](evidence/screenshots/01_baseline_checks.png)
+
+*Figure 2 — Baseline defects: float total `0.30000000000000004`, invalid date and negative amount accepted, traceback on `abc`, raw `=HYPERLINK(...)` and unquoted comma in CSV.*
+
+![Baseline defects](evidence/screenshots/02_baseline_defects.png)
+
+*Figure 3 — Final checks: 37 passed, ruff clean, strict mypy clean.*
+
+![Final checks](evidence/screenshots/03_final_checks.png)
+
+*Figure 4 — Final, same scenario: `Total: 0.30`, clear `error:` messages with exit 1, formula neutralised with `'`, comma field quoted.*
+
+![Final defects fixed](evidence/screenshots/04_final_defects_fixed.png)
 
 **Not executed:** no CI run (no pipeline exists); no fault-injection or concurrency test for R5; the CSV defence was checked on the CSV text, not by opening the file in Excel or LibreOffice; tests ran only on macOS with Python 3.13 (3.10–3.12 and Windows untested).
 
@@ -309,6 +328,7 @@ The repository instructions clearly helped. The agent stopped for approval befor
 | 6 | Mitigate R2 and R3 with tests first | M1 and M2 code and tests | Changes data format and test expectations | Diff reviewed and approved by me before commit (AGENTS.md §8.3/§8.4) | `mitigation_tests_before.txt`, `final_*.txt` |
 | 7 | Pin dependencies, declare lint/type config | `requirements-dev.txt`, `[tool.ruff]`, `[tool.mypy]` | Explicit rules exposed 15 E501 lines | Set line length 110, wrapped one line; dependency change approved by me | `final_checks.txt` |
 | 8 | Draft this report | Report text | First evidence logs recorded empty exit codes (a shell incompatibility); one duplicate test run had a misleading label | Logs regenerated under bash with real exit codes; duplicate run removed | Evidence files, timestamps and commit hashes in each log header |
+| 9 | Take terminal screenshots for §7.4 | Scripts that run the baseline and final scenarios in Terminal, captured with `screencapture` | First capture was blank (no screen-recording permission); one image cut off the header | Permission granted by me; window resized and image retaken; every image checked visually | `docs/evidence/screenshots/` |
 
 ## Appendix B — Evidence index (`docs/evidence/`)
 
@@ -323,5 +343,6 @@ The repository instructions clearly helped. The agent stopped for approval befor
 | `mitigation_tests_before.txt` | New M1/M2 tests run against the old code (25 failed) |
 | `mitigations_M1_M2.diff` | The diff reviewed and approved before commit |
 | `final_checks.txt`, `final_smoke.txt`, `final_tests_verbose.txt` | Final state: checks, same smoke scenario, 37 named tests, git log and diff stat |
+| `screenshots/01–04_*.png` | Terminal screenshots: baseline vs final checks and defect scenario (§7.4) |
 
 **Reproduce:** `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/pip install -e . && .venv/bin/pytest -q && .venv/bin/ruff check . && .venv/bin/mypy` · compare versions: `git diff baseline final`.
