@@ -1,5 +1,7 @@
-"""Characterisation tests: lock the current output of export/summary
-so the Strategy refactoring (Task 3) can be shown to preserve behaviour."""
+"""Characterisation tests: lock the output of export/summary.
+
+Written before the Strategy refactoring (Task 3). Amount formatting was updated
+intentionally in mitigation M1 (Decimal, always 2 decimals: 5.0 -> 5.00)."""
 import json
 
 import pytest
@@ -32,9 +34,9 @@ def test_export_csv(capsys, data_file):
     out = run(capsys, "--file", data_file, "export", "--format", "csv")
     assert out.splitlines() == [
         "date,category,description,amount",
-        "2026-11-01,food,lunch,12.5",
-        "2026-11-02,taxi,ride,5.0",
-        "2026-11-03,food,dinner,20.0",
+        "2026-11-01,food,lunch,12.50",
+        "2026-11-02,taxi,ride,5.00",
+        "2026-11-03,food,dinner,20.00",
     ]
 
 
@@ -47,7 +49,7 @@ def test_export_md(capsys, data_file):
     out = run(capsys, "--file", data_file, "export", "--format", "md")
     lines = out.splitlines()
     assert lines[0] == "| date | category | description | amount |"
-    assert lines[2] == "| 2026-11-01 | food | lunch | 12.5 |"
+    assert lines[2] == "| 2026-11-01 | food | lunch | 12.50 |"
 
 
 def test_export_to_file(tmp_path, capsys, data_file):
@@ -59,8 +61,8 @@ def test_export_to_file(tmp_path, capsys, data_file):
 @pytest.mark.parametrize(
     "fmt,expected",
     [
-        ("csv", ["category,total", "food,32.5", "taxi,5.0"]),
-        ("md", ["| category | total |", "|---|---|", "| food | 32.5 |", "| taxi | 5.0 |"]),
+        ("csv", ["category,total", "food,32.50", "taxi,5.00"]),
+        ("md", ["| category | total |", "|---|---|", "| food | 32.50 |", "| taxi | 5.00 |"]),
     ],
 )
 def test_summary(capsys, data_file, fmt, expected):
@@ -69,7 +71,7 @@ def test_summary(capsys, data_file, fmt, expected):
 
 def test_summary_json(capsys, data_file):
     out = run(capsys, "--file", data_file, "summary", "--format", "json")
-    assert json.loads(out) == {"food": 32.5, "taxi": 5.0}
+    assert json.loads(out) == {"food": "32.50", "taxi": "5.00"}
 
 
 def test_unknown_format_exits_nonzero(capsys, data_file):
