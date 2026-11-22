@@ -1,0 +1,89 @@
+# Baseline checks — 2026-11-22 14:22 — commit 6d994d2
+Python: Python 3.13.7
+
+$ .venv/bin/pytest -q
+
+==================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_basic.py _____________________
+ImportError while importing test module '/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/tests/test_basic.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_basic.py:1: in <module>
+    from expense_tracker import storage
+E   ModuleNotFoundError: No module named 'expense_tracker'
+=========================== short test summary info ============================
+ERROR tests/test_basic.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.08s
+[exit code: 2]
+
+$ .venv/bin/ruff check .
+I001 [*] Import block is un-sorted or un-formatted
+ --> expense_tracker/models.py:1:1
+  |
+1 | from dataclasses import dataclass, asdict
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: Organize imports
+  |
+  - from dataclasses import dataclass, asdict
+1 + from dataclasses import asdict, dataclass
+2 |
+  |
+
+Found 1 error.
+[*] 1 fixable with `--fix`.
+[exit code: 1]
+
+$ .venv/bin/mypy --strict expense_tracker
+expense_tracker/models.py:11: error: Function is missing a return type annotation  [no-untyped-def]
+expense_tracker/models.py:15: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/storage.py:9: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/storage.py:14: error: Call to untyped function "from_dict" of "Expense" in typed context  [no-untyped-call]
+expense_tracker/storage.py:17: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:9: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:17: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:18: error: Call to untyped function "load" in typed context  [no-untyped-call]
+expense_tracker/cli.py:20: error: Call to untyped function "save" in typed context  [no-untyped-call]
+expense_tracker/cli.py:24: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:25: error: Call to untyped function "load" in typed context  [no-untyped-call]
+expense_tracker/cli.py:29: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:30: error: Call to untyped function "total" in typed context  [no-untyped-call]
+expense_tracker/cli.py:30: error: Call to untyped function "load" in typed context  [no-untyped-call]
+expense_tracker/cli.py:33: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:34: error: Call to untyped function "load" in typed context  [no-untyped-call]
+expense_tracker/cli.py:57: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:58: error: Call to untyped function "load" in typed context  [no-untyped-call]
+expense_tracker/cli.py:59: error: Need type annotation for "by_cat" (hint: "by_cat: dict[<type>, <type>] = ...")  [var-annotated]
+expense_tracker/cli.py:78: error: Function is missing a type annotation  [no-untyped-def]
+expense_tracker/cli.py:110: error: Call to untyped function "main" in typed context  [no-untyped-call]
+expense_tracker/__main__.py:3: error: Call to untyped function "main" in typed context  [no-untyped-call]
+Found 22 errors in 4 files (checked 5 source files)
+[exit code: 1]
+
+$ .venv/bin/python -m build --outdir /tmp/et-build-baseline . | tail -2
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=61
+* Getting build dependencies for sdist...
+* Installed build dependency versions:
+  - setuptools==84.2.1
+* Building sdist...
+* Building wheel from sdist
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=61
+* Getting build dependencies for wheel...
+* Installed build dependency versions:
+  - setuptools==84.2.1
+* Building wheel...
+removing build/bdist.macosx-10.13-universal2/wheel
+Successfully built expense_tracker-0.1.0.tar.gz and expense_tracker-0.1.0-py3-none-any.whl
+[exit code: 0]
+
+$ .venv/bin/pip-audit -r requirements-dev.txt
+No known vulnerabilities found
+[exit code: 0]
+

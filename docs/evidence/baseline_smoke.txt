@@ -1,0 +1,120 @@
+# Baseline smoke / weakness reproduction — 2026-11-22 14:23 — commit 6d994d2
+(data file in a temp dir: $D)
+
+$ .venv/bin/python -m pytest -q
+..                                                                       [100%]
+2 passed in 0.02s
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food lunch 0.1
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-02 food snack 0.2
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D total
+Total: 0.30000000000000004
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-13-45 food 'bad date' -50
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add yesterday taxi ride abc
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/__main__.py", line 3, in <module>
+    main()
+    ~~~~^^
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/cli.py", line 106, in main
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/cli.py", line 19, in cmd_add
+    expenses.append(Expense(args.date, args.category, args.description, float(args.amount)))
+                                                                        ~~~~~^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'abc'
+[exit code: 1]
+
+$ .venv/bin/python -m expense_tracker --file $D list
+2026-11-01  food                0.1  lunch
+2026-11-02  food                0.2  snack
+2026-13-45  food              -50.0  bad date
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-03 misc '=HYPERLINK("http://evil.example","click")' 1
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-04 misc 'coffee, large' 3
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format csv
+date,category,description,amount
+2026-11-01,food,lunch,0.1
+2026-11-02,food,snack,0.2
+2026-13-45,food,bad date,-50.0
+2026-11-03,misc,=HYPERLINK("http://evil.example","click"),1.0
+2026-11-04,misc,coffee, large,3.0
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format xml
+unknown format
+[exit code: 1]
+
+$ .venv/bin/python -m expense_tracker --file $D summary --format md
+| category | total |
+|---|---|
+| food | -49.7 |
+| misc | 4.0 |
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D report
+usage: expense-tracker [-h] [--file FILE] {add,list,total,export,summary} ...
+expense-tracker: error: argument cmd: invalid choice: 'report' (choose from add, list, total, export, summary)
+[exit code: 2]
+
+$ echo '{not json' > $D && .venv/bin/python -m expense_tracker --file $D list | tail -3
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/__main__.py", line 3, in <module>
+    main()
+    ~~~~^^
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/cli.py", line 106, in main
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/cli.py", line 25, in cmd_list
+    for e in storage.load(args.file):
+             ~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/Mark/Desktop/Учеба/Software/sis5/expense-tracker/expense_tracker/storage.py", line 13, in load
+    data = json.load(f)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+[exit code: 0]
+
+$ cat README.md | grep -n 'requirements.txt\|report'
+7:    pip install -r requirements.txt
+15:    python -m expense_tracker report
+[exit code: 0]
+
+$ ls requirements*.txt
+requirements-dev.txt
+[exit code: 0]
+

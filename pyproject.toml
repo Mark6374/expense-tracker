@@ -13,3 +13,7 @@ expense-tracker = "expense_tracker.cli:main"
 
 [tool.setuptools]
 packages = ["expense_tracker"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
