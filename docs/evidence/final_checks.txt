@@ -1,0 +1,39 @@
+# Final checks — 2026-11-22 14:36 — commit 7e5b203
+Python: Python 3.13.7
+
+$ .venv/bin/pytest -q
+.....................................                                    [100%]
+37 passed in 0.07s
+[exit code: 0]
+
+$ .venv/bin/ruff check .
+All checks passed!
+[exit code: 0]
+
+$ .venv/bin/mypy
+Success: no issues found in 6 source files
+[exit code: 0]
+
+$ .venv/bin/python -m build --outdir $SP/build-final . | tail -1
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=61
+* Getting build dependencies for sdist...
+* Installed build dependency versions:
+  - setuptools==84.2.1
+* Building sdist...
+* Building wheel from sdist
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=61
+* Getting build dependencies for wheel...
+* Installed build dependency versions:
+  - setuptools==84.2.1
+* Building wheel...
+Successfully built expense_tracker-0.1.0.tar.gz and expense_tracker-0.1.0-py3-none-any.whl
+[exit code: 0]
+
+$ .venv/bin/pip-audit -r requirements-dev.txt
+No known vulnerabilities found
+[exit code: 0]
+

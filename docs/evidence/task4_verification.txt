@@ -1,0 +1,118 @@
+# Task 4 — human-directed verification of AI candidate findings — 2026-11-22 14:28 — commit 465ed5e
+(scratch data file $D in a temp dir; never the real expenses.json. Long tracebacks trimmed to the last line.)
+
+## F1 float money
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 a x 0.1 && .venv/bin/python -m expense_tracker --file $D add 2026-11-01 a y 0.2 && .venv/bin/python -m expense_tracker --file $D total
+Added.
+Added.
+Total: 0.30000000000000004
+[exit code: 0]
+
+## F2 validation / tracebacks
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food x abc
+ValueError: could not convert string to float: 'abc'
+[exit code: 1]
+
+$ .venv/bin/python -m expense_tracker --file $D add not-a-date food x nan && .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food y 5 && .venv/bin/python -m expense_tracker --file $D total
+Added.
+Added.
+Total: nan
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food y -50 && .venv/bin/python -m expense_tracker --file $D list
+Added.
+not-a-date  food                nan  x
+2026-11-01  food                5.0  y
+2026-11-01  food              -50.0  y
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D list
+KeyError: 'description'
+[exit code: 1]
+
+## F3 non-atomic save (code inspection only; crash NOT reproduced)
+$ grep -n 'open(path' expense_tracker/storage.py
+12:    with open(path) as f:
+18:    with open(path, "w") as f:
+[exit code: 0]
+
+## F4 CSV/MD escaping
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food 'lunch, with tip' 10 && .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food '=1+1' 1 && .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food 'a|b' 2 && .venv/bin/python -m expense_tracker --file $D export --format csv
+Added.
+Added.
+Added.
+date,category,description,amount
+2026-11-01,food,lunch, with tip,10.0
+2026-11-01,food,=1+1,1.0
+2026-11-01,food,a|b,2.0
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format md
+| date | category | description | amount |
+|---|---|---|---|
+| 2026-11-01 | food | lunch, with tip | 10.0 |
+| 2026-11-01 | food | =1+1 | 1.0 |
+| 2026-11-01 | food | a|b | 2.0 |
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format csv | .venv/bin/python -c 'import csv,sys; print([len(r) for r in csv.reader(sys.stdin)])'
+[4, 5, 4, 4]
+[exit code: 0]
+
+## F5 export --output overwrites data file
+$ .venv/bin/python -m expense_tracker --file $D export --format csv --output $D && .venv/bin/python -m expense_tracker --file $D list
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+[exit code: 1]
+
+## F6 unpinned deps
+$ cat requirements-dev.txt; grep -n requires pyproject.toml
+pytest
+ruff
+mypy
+2:requires = ["setuptools>=61"]
+9:requires-python = ">=3.10"
+[exit code: 0]
+
+## F7 mypy default vs strict
+$ .venv/bin/mypy expense_tracker
+Success: no issues found in 6 source files
+[exit code: 0]
+
+$ .venv/bin/mypy --disallow-untyped-defs expense_tracker
+Found 12 errors in 3 files (checked 6 source files)
+[exit code: 1]
+
+$ grep -c exporters expense_tracker.egg-info/SOURCES.txt; git check-ignore expense_tracker.egg-info
+0
+expense_tracker.egg-info
+[exit code: 0]
+
+## F8 agent operations
+$ grep -n DEFAULT_PATH expense_tracker/*.py
+expense_tracker/cli.py:54:    p.add_argument("--file", default=storage.DEFAULT_PATH)
+expense_tracker/storage.py:6:DEFAULT_PATH = os.environ.get("EXPENSES_FILE", "expenses.json")
+expense_tracker/storage.py:9:def load(path=DEFAULT_PATH):
+expense_tracker/storage.py:17:def save(expenses, path=DEFAULT_PATH):
+[exit code: 0]
+
+$ mkdir -p <scratchpad>/verify/cwdtest && cd <scratchpad>/verify/cwdtest && <repo>/.venv/bin/python -m expense_tracker add 2026-11-01 a b 1; ls <scratchpad>/verify/cwdtest
+Added.
+expenses.json
+[exit code: 0]
+
+$ EXPENSES_FILE=<scratchpad>/verify/env.json .venv/bin/python -m expense_tracker add 2026-11-01 a b 1 && ls <scratchpad>/verify/env.json
+Added.
+<scratchpad>/verify/env.json
+[exit code: 0]
+
+$ ls -a .claude .github .pre-commit-config.yaml
+ls: .claude: No such file or directory
+ls: .github: No such file or directory
+ls: .pre-commit-config.yaml: No such file or directory
+[exit code: 1]
+
+$ git rev-parse --is-inside-work-tree && git tag
+true
+baseline
+[exit code: 0]
+

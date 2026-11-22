@@ -1,6 +1,6 @@
 # AGENTS.md — instructions for AI coding agents
 
-This file is the single source of truth for any AI agent (Claude Code, Codex, Copilot, etc.)
+This file is the single source of truth for any AI coding agent
 working in this repository. `CLAUDE.md` only imports this file.
 
 ## 1. Purpose

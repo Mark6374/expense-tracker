@@ -1,0 +1,29 @@
+# M1/M2 new tests run against UNCHANGED code (expected to fail) — 2026-11-22 14:28 — commit 465ed5e
+$ .venv/bin/pytest -q tests/test_validation.py tests/test_exporters.py
+FAILED tests/test_validation.py::test_total_is_exact_to_the_cent - AssertionE...
+FAILED tests/test_validation.py::test_total_function_returns_decimal - TypeEr...
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[abc]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[-50]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[0]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[nan]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[inf]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[1.234]
+FAILED tests/test_validation.py::test_invalid_amount_rejected_without_traceback[12,50]
+FAILED tests/test_validation.py::test_invalid_date_rejected[2026-13-45] - ass...
+FAILED tests/test_validation.py::test_invalid_date_rejected[yesterday] - asse...
+FAILED tests/test_validation.py::test_invalid_date_rejected[] - assert 0 == 1
+FAILED tests/test_validation.py::test_corrupt_data_file_gives_clear_error - j...
+FAILED tests/test_validation.py::test_record_with_missing_field_gives_clear_error
+FAILED tests/test_validation.py::test_amount_round_trips_exactly - TypeError:...
+FAILED tests/test_exporters.py::test_csv_comma_and_quotes_keep_four_columns
+FAILED tests/test_exporters.py::test_csv_newline_in_description_stays_one_record
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[=HYPERLINK("http://evil.example","x")]
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[+1+1]
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[-2+3]
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[@SUM(A1)]
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[\t=1]
+FAILED tests/test_exporters.py::test_csv_formula_injection_neutralised[\r=1]
+FAILED tests/test_exporters.py::test_csv_category_is_sanitised_too - assert '...
+FAILED tests/test_exporters.py::test_markdown_pipe_and_newline_do_not_break_table
+25 failed, 2 passed in 0.15s
+[pytest exit code: 1]  (2 passing = test_legacy_float_amounts_still_load, test_csv_plain_text_unchanged: already true before the fix)

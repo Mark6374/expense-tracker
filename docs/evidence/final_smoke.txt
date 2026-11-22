@@ -1,0 +1,70 @@
+# Final smoke — same scenario as baseline_smoke.txt — 2026-11-22 14:37 — commit 7e5b203
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-01 food lunch 0.1
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-02 food snack 0.2
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D total
+Total: 0.30
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-13-45 food 'bad date' -50
+error: invalid date '2026-13-45': expected YYYY-MM-DD
+[exit code: 1]
+
+$ .venv/bin/python -m expense_tracker --file $D add yesterday taxi ride abc
+error: invalid date 'yesterday': expected YYYY-MM-DD
+[exit code: 1]
+
+$ .venv/bin/python -m expense_tracker --file $D list
+2026-11-01  food               0.10  lunch
+2026-11-02  food               0.20  snack
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-03 misc '=HYPERLINK("http://evil.example","click")' 1
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D add 2026-11-04 misc 'coffee, large' 3
+Added.
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format csv
+date,category,description,amount
+2026-11-01,food,lunch,0.10
+2026-11-02,food,snack,0.20
+2026-11-03,misc,"'=HYPERLINK(""http://evil.example"",""click"")",1.00
+2026-11-04,misc,"coffee, large",3.00
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format csv | .venv/bin/python -c 'import csv,sys; print([len(r) for r in csv.reader(sys.stdin)])'
+[4, 4, 4, 4, 4]
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D export --format xml
+usage: expense-tracker export [-h] [--format {csv,json,md}] [--output OUTPUT]
+expense-tracker export: error: argument --format: invalid choice: 'xml' (choose from csv, json, md)
+[exit code: 2]
+
+$ .venv/bin/python -m expense_tracker --file $D summary --format md
+| category | total |
+|---|---|
+| food | 0.30 |
+| misc | 4.00 |
+[exit code: 0]
+
+$ .venv/bin/python -m expense_tracker --file $D summary
+| category | total |
+|---|---|
+| food | 0.30 |
+| misc | 4.00 |
+[exit code: 0]
+
+$ echo '{not json' > $D && .venv/bin/python -m expense_tracker --file $D list
+error: data file <scratchpad>/smoke2/e.json is not valid JSON (Expecting property name enclosed in double quotes, line 1)
+[exit code: 1]
+

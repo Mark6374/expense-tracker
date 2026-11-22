@@ -1,0 +1,65 @@
+# Final verbose test list — commit 7e5b203
+$ .venv/bin/pytest -v
+tests/test_basic.py::test_add_and_load PASSED                            [  2%]
+tests/test_basic.py::test_total_by_category PASSED                       [  5%]
+tests/test_cli_output.py::test_export_csv PASSED                         [  8%]
+tests/test_cli_output.py::test_export_json PASSED                        [ 10%]
+tests/test_cli_output.py::test_export_md PASSED                          [ 13%]
+tests/test_cli_output.py::test_export_to_file PASSED                     [ 16%]
+tests/test_cli_output.py::test_summary[csv-expected0] PASSED             [ 18%]
+tests/test_cli_output.py::test_summary[md-expected1] PASSED              [ 21%]
+tests/test_cli_output.py::test_summary_json PASSED                       [ 24%]
+tests/test_cli_output.py::test_unknown_format_exits_nonzero PASSED       [ 27%]
+tests/test_exporters.py::test_csv_comma_and_quotes_keep_four_columns PASSED [ 29%]
+tests/test_exporters.py::test_csv_newline_in_description_stays_one_record PASSED [ 32%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[=HYPERLINK("http://evil.example","x")] PASSED [ 35%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[+1+1] PASSED [ 37%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[-2+3] PASSED [ 40%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[@SUM(A1)] PASSED [ 43%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[\t=1] PASSED [ 45%]
+tests/test_exporters.py::test_csv_formula_injection_neutralised[\r=1] PASSED [ 48%]
+tests/test_exporters.py::test_csv_category_is_sanitised_too PASSED       [ 51%]
+tests/test_exporters.py::test_csv_plain_text_unchanged PASSED            [ 54%]
+tests/test_exporters.py::test_markdown_pipe_and_newline_do_not_break_table PASSED [ 56%]
+tests/test_validation.py::test_total_is_exact_to_the_cent PASSED         [ 59%]
+tests/test_validation.py::test_total_function_returns_decimal PASSED     [ 62%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[abc] PASSED [ 64%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[-50] PASSED [ 67%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[0] PASSED [ 70%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[nan] PASSED [ 72%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[inf] PASSED [ 75%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[1.234] PASSED [ 78%]
+tests/test_validation.py::test_invalid_amount_rejected_without_traceback[12,50] PASSED [ 81%]
+tests/test_validation.py::test_invalid_date_rejected[2026-13-45] PASSED  [ 83%]
+tests/test_validation.py::test_invalid_date_rejected[yesterday] PASSED   [ 86%]
+tests/test_validation.py::test_invalid_date_rejected[] PASSED            [ 89%]
+tests/test_validation.py::test_corrupt_data_file_gives_clear_error PASSED [ 91%]
+tests/test_validation.py::test_record_with_missing_field_gives_clear_error PASSED [ 94%]
+tests/test_validation.py::test_amount_round_trips_exactly PASSED         [ 97%]
+tests/test_validation.py::test_legacy_float_amounts_still_load PASSED    [100%]
+============================== 37 passed in 0.08s ==============================
+[exit code: 0]
+
+$ git log --oneline baseline^..HEAD
+7e5b203 Pin dev tool versions and declare ruff/mypy configuration in pyproject.toml
+f24d7e2 Quote CSV fields and neutralise spreadsheet formula injection in exports (M2)
+a213efd Use Decimal for money, validate input and report errors without tracebacks (M1)
+465ed5e Refactor output formats into Strategy exporters registry
+b31fc42 Add characterisation tests for export and summary output
+dadd7d7 Add AGENTS.md/CLAUDE.md, fix README commands and pytest import path
+6d994d2 Baseline: expense tracker v0.1.0
+
+$ git diff --stat baseline HEAD -- . ":!docs"
+ AGENTS.md                    | 69 ++++++++++++++++++++++++++++++++
+ CLAUDE.md                    |  1 +
+ README.md                    | 22 +++++++---
+ expense_tracker/cli.py       | 95 +++++++++++++++++++-------------------------
+ expense_tracker/exporters.py | 81 +++++++++++++++++++++++++++++++++++++
+ expense_tracker/models.py    | 57 +++++++++++++++++++++++---
+ expense_tracker/storage.py   | 30 ++++++++++----
+ pyproject.toml               | 16 ++++++++
+ requirements-dev.txt         |  9 +++--
+ tests/test_cli_output.py     | 80 +++++++++++++++++++++++++++++++++++++
+ tests/test_exporters.py      | 54 +++++++++++++++++++++++++
+ tests/test_validation.py     | 79 ++++++++++++++++++++++++++++++++++++
+ 12 files changed, 517 insertions(+), 76 deletions(-)

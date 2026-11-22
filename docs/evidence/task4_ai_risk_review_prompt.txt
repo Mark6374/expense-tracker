@@ -1,0 +1,15 @@
+# Task 4 — read-only AI risk review
+Tool: Claude Code (VS Code extension), read-only "Explore" sub-agent, model Claude Opus 5.5
+Date: 2026-11-22
+Repository state reviewed: commit after "Refactor output formats into Strategy exporters registry"
+Sub-agent toolset: read/search only (no Edit/Write tools available to it).
+
+## Prompt (verbatim)
+You are performing a READ-ONLY software risk review. Do NOT modify, create or delete any files and do not run any command that writes to disk. Only read files.
+
+Repository: <repo path> (a small Python CLI expense tracker). Read every file in expense_tracker/, tests/, README.md, AGENTS.md, pyproject.toml, requirements-dev.txt, .gitignore. Ignore docs/ and .venv/.
+
+Propose 8 candidate risks spanning these categories: correctness, maintainability, security, dependency, agent operations. For each candidate give: short title, category, cause → event → consequence, affected file/function with line references, and what evidence (code excerpt or a command a human could run) would confirm it. Also say how confident you are (high/medium/low). Do not claim you executed anything. Return the list as plain text, numbered.
+
+## Output
+See task4_ai_risk_review_output.md (verbatim).

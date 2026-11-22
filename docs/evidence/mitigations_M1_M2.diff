@@ -1,0 +1,376 @@
+diff --git a/expense_tracker/cli.py b/expense_tracker/cli.py
+index a4559d8..67278cb 100644
+--- a/expense_tracker/cli.py
++++ b/expense_tracker/cli.py
+@@ -1,64 +1,68 @@
++from __future__ import annotations
++
+ import argparse
++import sys
++from decimal import Decimal
+ 
+ from . import storage
+ from .exporters import EXPORTERS
+-from .models import Expense
++from .models import Expense, ValidationError
++
++
++def total(expenses: list[Expense], category: str | None = None) -> Decimal:
++    return sum(
++        (e.amount for e in expenses if category is None or e.category == category),
++        Decimal("0.00"),
++    )
+ 
+ 
+-def total(expenses, category=None):
+-    t = 0.0
++def summarize(expenses: list[Expense]) -> dict[str, Decimal]:
++    by_cat: dict[str, Decimal] = {}
+     for e in expenses:
+-        if category is None or e.category == category:
+-            t += e.amount
+-    return t
++        by_cat[e.category] = by_cat.get(e.category, Decimal("0.00")) + e.amount
++    return by_cat
+ 
+ 
+-def cmd_add(args):
++def cmd_add(args: argparse.Namespace) -> None:
++    new = Expense(args.date, args.category, args.description, args.amount)  # validates
+     expenses = storage.load(args.file)
+-    expenses.append(Expense(args.date, args.category, args.description, float(args.amount)))
++    expenses.append(new)
+     storage.save(expenses, args.file)
+     print("Added.")
+ 
+ 
+-def cmd_list(args):
++def cmd_list(args: argparse.Namespace) -> None:
+     for e in storage.load(args.file):
+         print(f"{e.date}  {e.category:<12} {e.amount:>10}  {e.description}")
+ 
+ 
+-def cmd_total(args):
++def cmd_total(args: argparse.Namespace) -> None:
+     print(f"Total: {total(storage.load(args.file), args.category)}")
+ 
+ 
+-def cmd_export(args):
++def cmd_export(args: argparse.Namespace) -> None:
+     out = EXPORTERS[args.format].expenses(storage.load(args.file))
+     if args.output:
+-        with open(args.output, "w") as f:
++        with open(args.output, "w", encoding="utf-8", newline="") as f:
+             f.write(out)
+     else:
+         print(out)
+ 
+ 
+-def summarize(expenses):
+-    by_cat = {}
+-    for e in expenses:
+-        by_cat[e.category] = by_cat.get(e.category, 0) + e.amount
+-    return by_cat
+-
+-
+-def cmd_summary(args):
++def cmd_summary(args: argparse.Namespace) -> None:
+     print(EXPORTERS[args.format].summary(summarize(storage.load(args.file))))
+ 
+ 
+-def main(argv=None):
++def build_parser() -> argparse.ArgumentParser:
+     p = argparse.ArgumentParser(prog="expense-tracker")
+     p.add_argument("--file", default=storage.DEFAULT_PATH)
+     sub = p.add_subparsers(dest="cmd", required=True)
+ 
+     a = sub.add_parser("add")
+-    a.add_argument("date")
++    a.add_argument("date", help="YYYY-MM-DD")
+     a.add_argument("category")
+     a.add_argument("description")
+-    a.add_argument("amount")
++    a.add_argument("amount", help="positive number, max 2 decimals, e.g. 12.50")
+     a.set_defaults(func=cmd_add)
+ 
+     sub.add_parser("list").set_defaults(func=cmd_list)
+@@ -75,9 +79,16 @@ def main(argv=None):
+     s = sub.add_parser("summary")
+     s.add_argument("--format", default="md", choices=sorted(EXPORTERS))
+     s.set_defaults(func=cmd_summary)
++    return p
++
+ 
+-    args = p.parse_args(argv)
+-    args.func(args)
++def main(argv: list[str] | None = None) -> None:
++    args = build_parser().parse_args(argv)
++    try:
++        args.func(args)
++    except (ValidationError, storage.StorageError) as exc:
++        print(f"error: {exc}", file=sys.stderr)
++        sys.exit(1)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/expense_tracker/exporters.py b/expense_tracker/exporters.py
+index d0b67cf..0013425 100644
+--- a/expense_tracker/exporters.py
++++ b/expense_tracker/exporters.py
+@@ -6,7 +6,10 @@ format means adding one class and one registry entry — no edits to ``cli.py``.
+ """
+ from __future__ import annotations
+ 
++import csv
++import io
+ import json
++from decimal import Decimal
+ from typing import Protocol
+ 
+ from .models import Expense
+@@ -15,36 +18,59 @@ from .models import Expense
+ class Exporter(Protocol):
+     def expenses(self, items: list[Expense]) -> str: ...
+ 
+-    def summary(self, totals: dict[str, float]) -> str: ...
++    def summary(self, totals: dict[str, Decimal]) -> str: ...
++
++
++# Cells starting with these characters are interpreted as formulas by Excel /
++# LibreOffice / Google Sheets (CSV injection, OWASP). Prefixing "'" forces text.
++_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
++
++
++def _safe_cell(value: str) -> str:
++    return "'" + value if value.startswith(_FORMULA_PREFIXES) else value
++
++
++def _csv(rows: list[list[str]]) -> str:
++    buf = io.StringIO()
++    writer = csv.writer(buf, lineterminator="\n")  # quotes , " and newlines
++    writer.writerows(rows)
++    return buf.getvalue().rstrip("\n")
+ 
+ 
+ class CsvExporter:
+     def expenses(self, items: list[Expense]) -> str:
+-        lines = ["date,category,description,amount"]
+-        lines += [f"{e.date},{e.category},{e.description},{e.amount}" for e in items]
+-        return "\n".join(lines)
++        rows = [["date", "category", "description", "amount"]]
++        rows += [[e.date, _safe_cell(e.category), _safe_cell(e.description), str(e.amount)] for e in items]
++        return _csv(rows)
+ 
+-    def summary(self, totals: dict[str, float]) -> str:
+-        return "\n".join(["category,total"] + [f"{c},{t}" for c, t in totals.items()])
++    def summary(self, totals: dict[str, Decimal]) -> str:
++        return _csv([["category", "total"]] + [[_safe_cell(c), str(t)] for c, t in totals.items()])
+ 
+ 
+ class JsonExporter:
+     def expenses(self, items: list[Expense]) -> str:
+         return json.dumps([e.to_dict() for e in items], indent=2)
+ 
+-    def summary(self, totals: dict[str, float]) -> str:
+-        return json.dumps(totals, indent=2)
++    def summary(self, totals: dict[str, Decimal]) -> str:
++        return json.dumps({c: str(t) for c, t in totals.items()}, indent=2)
++
++
++def _md_cell(value: str) -> str:
++    return value.replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+ 
+ 
+ class MarkdownExporter:
+     def expenses(self, items: list[Expense]) -> str:
+         lines = ["| date | category | description | amount |", "|---|---|---|---|"]
+-        lines += [f"| {e.date} | {e.category} | {e.description} | {e.amount} |" for e in items]
++        lines += [
++            f"| {e.date} | {_md_cell(e.category)} | {_md_cell(e.description)} | {e.amount} |"
++            for e in items
++        ]
+         return "\n".join(lines)
+ 
+-    def summary(self, totals: dict[str, float]) -> str:
++    def summary(self, totals: dict[str, Decimal]) -> str:
+         lines = ["| category | total |", "|---|---|"]
+-        lines += [f"| {c} | {t} |" for c, t in totals.items()]
++        lines += [f"| {_md_cell(c)} | {t} |" for c, t in totals.items()]
+         return "\n".join(lines)
+ 
+ 
+diff --git a/expense_tracker/models.py b/expense_tracker/models.py
+index 0b3e483..afc066a 100644
+--- a/expense_tracker/models.py
++++ b/expense_tracker/models.py
+@@ -1,4 +1,36 @@
+-from dataclasses import dataclass, asdict
++from __future__ import annotations
++
++from dataclasses import dataclass
++from datetime import date as _date
++from decimal import Decimal, InvalidOperation
++from typing import Any
++
++CENT = Decimal("0.01")
++
++
++class ValidationError(ValueError):
++    """Raised for invalid user input or invalid stored records."""
++
++
++def parse_amount(raw: object) -> Decimal:
++    """Return a positive amount with exactly two decimal places."""
++    try:
++        value = Decimal(str(raw).strip())
++    except InvalidOperation:
++        raise ValidationError(f"invalid amount {raw!r}: use digits and '.', e.g. 12.50") from None
++    if not value.is_finite() or value <= 0:
++        raise ValidationError(f"invalid amount {raw!r}: must be a positive number")
++    if value != value.quantize(CENT):
++        raise ValidationError(f"invalid amount {raw!r}: at most 2 decimal places")
++    return value.quantize(CENT)
++
++
++def parse_date(raw: object) -> str:
++    """Return the date in ISO format (YYYY-MM-DD)."""
++    try:
++        return _date.fromisoformat(str(raw)).isoformat()
++    except ValueError:
++        raise ValidationError(f"invalid date {raw!r}: expected YYYY-MM-DD") from None
+ 
+ 
+ @dataclass
+@@ -6,11 +38,24 @@ class Expense:
+     date: str
+     category: str
+     description: str
+-    amount: float
++    amount: Decimal
++
++    def __post_init__(self) -> None:
++        self.date = parse_date(self.date)
++        self.amount = parse_amount(self.amount)
+ 
+-    def to_dict(self):
+-        return asdict(self)
++    def to_dict(self) -> dict[str, str]:
++        # Amount is stored as a string so no precision is lost in JSON.
++        return {
++            "date": self.date,
++            "category": self.category,
++            "description": self.description,
++            "amount": str(self.amount),
++        }
+ 
+     @staticmethod
+-    def from_dict(d):
+-        return Expense(d["date"], d["category"], d["description"], float(d["amount"]))
++    def from_dict(d: dict[str, Any]) -> Expense:
++        try:
++            return Expense(d["date"], d["category"], d["description"], d["amount"])
++        except (KeyError, TypeError) as exc:
++            raise ValidationError(f"malformed record {d!r}: missing field {exc}") from None
+diff --git a/expense_tracker/storage.py b/expense_tracker/storage.py
+index 31339b2..b7e1192 100644
+--- a/expense_tracker/storage.py
++++ b/expense_tracker/storage.py
+@@ -1,19 +1,35 @@
++from __future__ import annotations
++
+ import json
+ import os
++from pathlib import Path
+ 
+-from .models import Expense
++from .models import Expense, ValidationError
+ 
++PathLike = str | Path
+ DEFAULT_PATH = os.environ.get("EXPENSES_FILE", "expenses.json")
+ 
+ 
+-def load(path=DEFAULT_PATH):
++class StorageError(Exception):
++    """Raised when the data file cannot be read."""
++
++
++def load(path: PathLike = DEFAULT_PATH) -> list[Expense]:
+     if not os.path.exists(path):
+         return []
+-    with open(path) as f:
+-        data = json.load(f)
+-    return [Expense.from_dict(d) for d in data]
++    try:
++        with open(path, encoding="utf-8") as f:
++            data = json.load(f)
++    except json.JSONDecodeError as exc:
++        raise StorageError(f"data file {path} is not valid JSON ({exc.msg}, line {exc.lineno})") from None
++    if not isinstance(data, list):
++        raise StorageError(f"data file {path} is not valid: expected a JSON list")
++    try:
++        return [Expense.from_dict(d) for d in data]
++    except ValidationError as exc:
++        raise StorageError(f"data file {path} is not valid: {exc}") from None
+ 
+ 
+-def save(expenses, path=DEFAULT_PATH):
+-    with open(path, "w") as f:
++def save(expenses: list[Expense], path: PathLike = DEFAULT_PATH) -> None:
++    with open(path, "w", encoding="utf-8") as f:
+         json.dump([e.to_dict() for e in expenses], f, indent=2)
+diff --git a/tests/test_cli_output.py b/tests/test_cli_output.py
+index 7707619..43edcea 100644
+--- a/tests/test_cli_output.py
++++ b/tests/test_cli_output.py
+@@ -1,5 +1,7 @@
+-"""Characterisation tests: lock the current output of export/summary
+-so the Strategy refactoring (Task 3) can be shown to preserve behaviour."""
++"""Characterisation tests: lock the output of export/summary.
++
++Written before the Strategy refactoring (Task 3). Amount formatting was updated
++intentionally in mitigation M1 (Decimal, always 2 decimals: 5.0 -> 5.00)."""
+ import json
+ 
+ import pytest
+@@ -32,9 +34,9 @@ def test_export_csv(capsys, data_file):
+     out = run(capsys, "--file", data_file, "export", "--format", "csv")
+     assert out.splitlines() == [
+         "date,category,description,amount",
+-        "2026-11-01,food,lunch,12.5",
+-        "2026-11-02,taxi,ride,5.0",
+-        "2026-11-03,food,dinner,20.0",
++        "2026-11-01,food,lunch,12.50",
++        "2026-11-02,taxi,ride,5.00",
++        "2026-11-03,food,dinner,20.00",
+     ]
+ 
+ 
+@@ -47,7 +49,7 @@ def test_export_md(capsys, data_file):
+     out = run(capsys, "--file", data_file, "export", "--format", "md")
+     lines = out.splitlines()
+     assert lines[0] == "| date | category | description | amount |"
+-    assert lines[2] == "| 2026-11-01 | food | lunch | 12.5 |"
++    assert lines[2] == "| 2026-11-01 | food | lunch | 12.50 |"
+ 
+ 
+ def test_export_to_file(tmp_path, capsys, data_file):
+@@ -59,8 +61,8 @@ def test_export_to_file(tmp_path, capsys, data_file):
+ @pytest.mark.parametrize(
+     "fmt,expected",
+     [
+-        ("csv", ["category,total", "food,32.5", "taxi,5.0"]),
+-        ("md", ["| category | total |", "|---|---|", "| food | 32.5 |", "| taxi | 5.0 |"]),
++        ("csv", ["category,total", "food,32.50", "taxi,5.00"]),
++        ("md", ["| category | total |", "|---|---|", "| food | 32.50 |", "| taxi | 5.00 |"]),
+     ],
+ )
+ def test_summary(capsys, data_file, fmt, expected):
+@@ -69,7 +71,7 @@ def test_summary(capsys, data_file, fmt, expected):
+ 
+ def test_summary_json(capsys, data_file):
+     out = run(capsys, "--file", data_file, "summary", "--format", "json")
+-    assert json.loads(out) == {"food": 32.5, "taxi": 5.0}
++    assert json.loads(out) == {"food": "32.50", "taxi": "5.00"}
+ 
+ 
+ def test_unknown_format_exits_nonzero(capsys, data_file):
