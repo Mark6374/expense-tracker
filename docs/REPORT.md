@@ -1,7 +1,7 @@
 # Assignment #05 — AI-assisted repository customization, agent readiness and risk governance
 
-**Repository:** `expense-tracker`, a small Python command-line expense tracker (no external runtime dependencies)
-**Baseline:** tag `baseline`, commit `6d994d2` · **Final:** tag `final`, commit `e8c3766` (later commits only add documentation and screenshots)
+**Repository:** <https://github.com/Mark6374/expense-tracker>, `expense-tracker`, a small Python command-line expense tracker (no external runtime dependencies)
+**Baseline:** tag [`baseline`](https://github.com/Mark6374/expense-tracker/tree/baseline), commit `6d994d2` · **Final:** tag [`final`](https://github.com/Mark6374/expense-tracker/tree/final), commit `e8c3766` (later commits only add documentation and screenshots) · **Diff:** [github.com/Mark6374/expense-tracker/compare/baseline...final](https://github.com/Mark6374/expense-tracker/compare/baseline...final)
 **Date:** 2026-11-22 · **Work mode:** individual
 
 Every command result quoted here was copied from a real run. The raw outputs are in [`docs/evidence/`](evidence/), listed in Appendix B. Nothing was estimated or made up. Any check that was not executed is stated as such (see §7.4).
@@ -345,4 +345,4 @@ The repository instructions clearly helped. The agent stopped for approval befor
 | `final_checks.txt`, `final_smoke.txt`, `final_tests_verbose.txt` | Final state: checks, same smoke scenario, 37 named tests, git log and diff stat |
 | `screenshots/01–04_*.png` | Terminal screenshots: baseline vs final checks and defect scenario (§7.4) |
 
-**Reproduce:** `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/pip install -e . && .venv/bin/pytest -q && .venv/bin/ruff check . && .venv/bin/mypy` · compare versions: `git diff baseline final`.
+**Reproduce:** `git clone https://github.com/Mark6374/expense-tracker && cd expense-tracker && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/pip install -e . && .venv/bin/pytest -q && .venv/bin/ruff check . && .venv/bin/mypy` · compare versions: `git diff baseline final`.
