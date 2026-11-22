@@ -6,6 +6,8 @@ format means adding one class and one registry entry — no edits to ``cli.py``.
 """
 from __future__ import annotations
 
+import csv
+import io
 import json
 from decimal import Decimal
 from typing import Protocol
@@ -19,14 +21,30 @@ class Exporter(Protocol):
     def summary(self, totals: dict[str, Decimal]) -> str: ...
 
 
+# Cells starting with these characters are interpreted as formulas by Excel /
+# LibreOffice / Google Sheets (CSV injection, OWASP). Prefixing "'" forces text.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _safe_cell(value: str) -> str:
+    return "'" + value if value.startswith(_FORMULA_PREFIXES) else value
+
+
+def _csv(rows: list[list[str]]) -> str:
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")  # quotes , " and newlines
+    writer.writerows(rows)
+    return buf.getvalue().rstrip("\n")
+
+
 class CsvExporter:
     def expenses(self, items: list[Expense]) -> str:
-        lines = ["date,category,description,amount"]
-        lines += [f"{e.date},{e.category},{e.description},{e.amount}" for e in items]
-        return "\n".join(lines)
+        rows = [["date", "category", "description", "amount"]]
+        rows += [[e.date, _safe_cell(e.category), _safe_cell(e.description), str(e.amount)] for e in items]
+        return _csv(rows)
 
     def summary(self, totals: dict[str, Decimal]) -> str:
-        return "\n".join(["category,total"] + [f"{c},{t}" for c, t in totals.items()])
+        return _csv([["category", "total"]] + [[_safe_cell(c), str(t)] for c, t in totals.items()])
 
 
 class JsonExporter:
@@ -37,15 +55,22 @@ class JsonExporter:
         return json.dumps({c: str(t) for c, t in totals.items()}, indent=2)
 
 
+def _md_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
 class MarkdownExporter:
     def expenses(self, items: list[Expense]) -> str:
         lines = ["| date | category | description | amount |", "|---|---|---|---|"]
-        lines += [f"| {e.date} | {e.category} | {e.description} | {e.amount} |" for e in items]
+        lines += [
+            f"| {e.date} | {_md_cell(e.category)} | {_md_cell(e.description)} | {e.amount} |"
+            for e in items
+        ]
         return "\n".join(lines)
 
     def summary(self, totals: dict[str, Decimal]) -> str:
         lines = ["| category | total |", "|---|---|"]
-        lines += [f"| {c} | {t} |" for c, t in totals.items()]
+        lines += [f"| {_md_cell(c)} | {t} |" for c, t in totals.items()]
         return "\n".join(lines)
 
 
