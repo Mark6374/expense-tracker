@@ -16,7 +16,7 @@ There is no server, no network access and no production deployment.
 | `expense_tracker/storage.py` | load/save the JSON data file |
 | `expense_tracker/exporters.py` | output formats (Strategy registry) — add new formats here only |
 | `expense_tracker/__main__.py` | enables `python -m expense_tracker` |
-| `tests/` | pytest suite; one file per module |
+| `tests/` | pytest suite, grouped by feature (validation, exporters, CLI output) |
 | `docs/` | assignment report and captured command evidence |
 
 Data flow: `cli` → `storage.load()` → list[`Expense`] → business function → `EXPORTERS[fmt]` / print → `storage.save()`.
@@ -33,7 +33,7 @@ python3 -m venv .venv
 ```bash
 .venv/bin/pytest -q                      # tests — must pass before any commit
 .venv/bin/ruff check .                   # lint
-.venv/bin/mypy expense_tracker           # type check
+.venv/bin/mypy                           # strict type check (config in pyproject.toml)
 .venv/bin/python -m expense_tracker --file /tmp/<scratch>.json <cmd>   # manual runs on a scratch file
 git status / git diff / git log          # read-only git
 ```
@@ -41,7 +41,7 @@ Always pass `--file` pointing to a temporary file when running the CLI manually 
 never read or write the user's real `expenses.json`.
 
 ## 5. Coding conventions
-- Python 3.10+, type hints on all public functions, `ruff` defaults (incl. import sorting).
+- Python 3.10+, type hints on all functions (`mypy --strict`), ruff rules from `pyproject.toml`.
 - Money is `decimal.Decimal`, never `float`.
 - Business logic must not print; only `cli.py` talks to stdout/stderr.
 - User errors → clear message on stderr + non-zero exit code, never a traceback.

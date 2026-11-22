@@ -1,3 +1,6 @@
-pytest
-ruff
-mypy
+# Pinned dev tools (versions verified 2026-11-22). Change only after human review — see AGENTS.md §7.
+pytest==9.2.0
+ruff==0.17.6
+mypy==2.4.1
+pip-audit==2.10.1
+build==1.6.1

@@ -29,7 +29,9 @@ def test_csv_newline_in_description_stays_one_record():
     assert len(parsed) == 2
 
 
-@pytest.mark.parametrize("payload", ['=HYPERLINK("http://evil.example","x")', "+1+1", "-2+3", "@SUM(A1)", "\t=1", "\r=1"])
+@pytest.mark.parametrize(
+    "payload", ['=HYPERLINK("http://evil.example","x")', "+1+1", "-2+3", "@SUM(A1)", "\t=1", "\r=1"]
+)
 def test_csv_formula_injection_neutralised(payload):
     parsed = rows(EXPORTERS["csv"].expenses([exp(payload)]))
     cell = parsed[1][2]

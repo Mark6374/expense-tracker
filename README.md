@@ -24,7 +24,7 @@ Data is stored in `expenses.json` in the current directory; override with
 
     .venv/bin/pytest -q
     .venv/bin/ruff check .
-    .venv/bin/mypy expense_tracker
+    .venv/bin/mypy
 
 ## For AI agents
 
