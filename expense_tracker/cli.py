@@ -1,8 +1,7 @@
 import argparse
-import json
-import sys
 
 from . import storage
+from .exporters import EXPORTERS
 from .models import Expense
 
 
@@ -31,22 +30,7 @@ def cmd_total(args):
 
 
 def cmd_export(args):
-    expenses = storage.load(args.file)
-    if args.format == "csv":
-        lines = ["date,category,description,amount"]
-        for e in expenses:
-            lines.append(f"{e.date},{e.category},{e.description},{e.amount}")
-        out = "\n".join(lines)
-    elif args.format == "json":
-        out = json.dumps([e.to_dict() for e in expenses], indent=2)
-    elif args.format == "md":
-        lines = ["| date | category | description | amount |", "|---|---|---|---|"]
-        for e in expenses:
-            lines.append(f"| {e.date} | {e.category} | {e.description} | {e.amount} |")
-        out = "\n".join(lines)
-    else:
-        print("unknown format")
-        sys.exit(1)
+    out = EXPORTERS[args.format].expenses(storage.load(args.file))
     if args.output:
         with open(args.output, "w") as f:
             f.write(out)
@@ -54,25 +38,15 @@ def cmd_export(args):
         print(out)
 
 
-def cmd_summary(args):
-    expenses = storage.load(args.file)
+def summarize(expenses):
     by_cat = {}
     for e in expenses:
         by_cat[e.category] = by_cat.get(e.category, 0) + e.amount
-    if args.format == "csv":
-        print("category,total")
-        for c, t in by_cat.items():
-            print(f"{c},{t}")
-    elif args.format == "json":
-        print(json.dumps(by_cat, indent=2))
-    elif args.format == "md":
-        print("| category | total |")
-        print("|---|---|")
-        for c, t in by_cat.items():
-            print(f"| {c} | {t} |")
-    else:
-        print("unknown format")
-        sys.exit(1)
+    return by_cat
+
+
+def cmd_summary(args):
+    print(EXPORTERS[args.format].summary(summarize(storage.load(args.file))))
 
 
 def main(argv=None):
@@ -94,12 +68,12 @@ def main(argv=None):
     t.set_defaults(func=cmd_total)
 
     e = sub.add_parser("export")
-    e.add_argument("--format", default="csv")
+    e.add_argument("--format", default="csv", choices=sorted(EXPORTERS))
     e.add_argument("--output")
     e.set_defaults(func=cmd_export)
 
     s = sub.add_parser("summary")
-    s.add_argument("--format", default="md")
+    s.add_argument("--format", default="md", choices=sorted(EXPORTERS))
     s.set_defaults(func=cmd_summary)
 
     args = p.parse_args(argv)

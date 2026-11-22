@@ -1,0 +1,22 @@
+# Task 3 — after Strategy refactor — 2026-11-22 14:24
+
+$ .venv/bin/pytest -v
+tests/test_basic.py::test_add_and_load PASSED                            [ 10%]
+tests/test_basic.py::test_total_by_category PASSED                       [ 20%]
+tests/test_cli_output.py::test_export_csv PASSED                         [ 30%]
+tests/test_cli_output.py::test_export_json PASSED                        [ 40%]
+tests/test_cli_output.py::test_export_md PASSED                          [ 50%]
+tests/test_cli_output.py::test_export_to_file PASSED                     [ 60%]
+tests/test_cli_output.py::test_summary[csv-expected0] PASSED             [ 70%]
+tests/test_cli_output.py::test_summary[md-expected1] PASSED              [ 80%]
+tests/test_cli_output.py::test_summary_json PASSED                       [ 90%]
+tests/test_cli_output.py::test_unknown_format_exits_nonzero PASSED       [100%]
+============================== 10 passed in 0.04s ==============================
+
+$ grep -c "args.format ==" expense_tracker/cli.py   (before, at tag baseline: 6)
+0
+
+$ wc -l expense_tracker/cli.py expense_tracker/exporters.py
+      84 expense_tracker/cli.py
+      55 expense_tracker/exporters.py
+     139 total

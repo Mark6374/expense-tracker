@@ -14,11 +14,12 @@ There is no server, no network access and no production deployment.
 | `expense_tracker/cli.py` | argparse entry point; one `cmd_*` function per sub-command |
 | `expense_tracker/models.py` | `Expense` dataclass and (de)serialisation |
 | `expense_tracker/storage.py` | load/save the JSON data file |
+| `expense_tracker/exporters.py` | output formats (Strategy registry) — add new formats here only |
 | `expense_tracker/__main__.py` | enables `python -m expense_tracker` |
 | `tests/` | pytest suite; one file per module |
 | `docs/` | assignment report and captured command evidence |
 
-Data flow: `cli` → `storage.load()` → list[`Expense`] → business function → print → `storage.save()`.
+Data flow: `cli` → `storage.load()` → list[`Expense`] → business function → `EXPORTERS[fmt]` / print → `storage.save()`.
 Runtime code uses the Python standard library only.
 
 ## 3. Setup (macOS / Linux, Python ≥ 3.10)
